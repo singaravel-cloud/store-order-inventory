@@ -1,0 +1,390 @@
+STORE ORDER & INVENTORY MINI-SYSTEM
+TASK VERIFICATION DOCUMENTATION
+
+Purpose:
+This document explains how to verify the implemented Store Order & Inventory Mini-System according to the assignment requirements.
+
+==================================================
+
+1. DATABASE / BASIC SETUP VERIFICATION
+   ==================================================
+
+Verify that the application contains the following main data:
+
+PRODUCT
+
+* Product Name
+* Unique Product Code
+* Price Per Unit
+* Tax Percentage
+* Stock On Hand
+
+CUSTOMER
+
+* Customer Name
+* Unique Email
+
+ORDER
+
+* Customer
+* Subtotal
+* Tax
+* Grand Total
+
+ORDER ITEMS
+
+* Product
+* Quantity
+* Unit Price
+* Tax Percentage
+* Subtotal
+* Tax
+* Total
+
+Expected:
+
+* Products, customers, orders and order items are stored separately.
+* Order items connect an order with its products.
+* Product and customer email/code uniqueness should be maintained.
+* The database should use a normalized structure.
+
+==================================================
+2. SAMPLE DATA / SEED VERIFICATION
+==================================
+
+Verify that the database contains sample products and customers after seeding.
+
+Expected:
+
+* Sample products are available.
+* Sample customers are available.
+* Products contain different prices, tax percentages and stock quantities.
+* Customers contain names and unique email addresses.
+
+Purpose:
+This sample data is used to test the APIs.
+
+==================================================
+3. CREATE ORDER API
+===================
+
+API:
+POST /api/orders
+
+Purpose:
+Create a new customer order with one or more products.
+
+Request information:
+
+Customer:
+
+* Customer Name
+* Customer Email
+
+Order Items:
+
+* Product ID
+* Quantity
+
+Verification:
+
+1. Send a request with a valid customer name and email.
+2. Add at least one valid product.
+3. Provide a quantity greater than 0.
+4. Submit the order.
+
+Expected Result:
+
+* Order should be created successfully.
+* API should return HTTP 201.
+* Created order information should be returned.
+* Customer should be created if the email does not already exist.
+* The order should be connected to the customer.
+* Order items should be created for the selected products.
+
+==================================================
+4. ORDER TOTAL CALCULATION
+==========================
+
+When an order is created, verify that the system calculates:
+
+Item Subtotal:
+Product Price × Quantity
+
+Item Tax:
+Item Subtotal × Tax Percentage
+
+Order Subtotal:
+Total of all item subtotals
+
+Order Tax:
+Total of all item taxes
+
+Grand Total:
+Order Subtotal + Order Tax
+
+Expected:
+
+* Calculated values should be stored with the order.
+* The returned order should contain the calculated totals.
+* Multiple products in the same order should be included in the calculation.
+
+==================================================
+5. STOCK DEDUCTION VERIFICATION
+===============================
+
+Before creating an order:
+
+Example:
+Product Stock = 10
+Order Quantity = 2
+
+After successful order:
+
+Expected:
+Product Stock = 8
+
+Verify:
+
+* Stock should be reduced by the ordered quantity.
+* Only the ordered quantity should be deducted.
+* The stock should never become negative.
+
+==================================================
+6. INSUFFICIENT STOCK VERIFICATION
+==================================
+
+Purpose:
+Verify that an order cannot be created when the requested quantity is greater than available stock.
+
+Example:
+
+Available Stock = 2
+Requested Quantity = 5
+
+Expected:
+
+* Order should NOT be created.
+* API should return a validation/error response.
+* Stock should remain unchanged.
+* No partial stock deduction should happen.
+* No incomplete order should remain in the database.
+
+==================================================
+7. CUSTOMER ORDER HISTORY API
+=============================
+
+API:
+GET /api/customers/orders?email=[customer@example.com](mailto:customer@example.com)
+
+Purpose:
+Retrieve all orders belonging to a customer using the customer's email address.
+
+Verification:
+
+1. Create one or more orders for a customer.
+2. Call the customer order history API using that customer's email.
+3. Check the response.
+
+Expected:
+
+* Customer information should be returned.
+* Customer's orders should be returned.
+* Order information should be available.
+* Order items and their related products should be available.
+* Orders should belong only to the requested customer.
+
+Customer Not Found:
+Use an email that does not exist.
+
+Expected:
+
+* API should return a customer-not-found response.
+* It should not return another customer's orders.
+
+==================================================
+8. LOW-STOCK PRODUCTS API
+=========================
+
+API:
+GET /api/products/low-stock?threshold=10
+
+Purpose:
+Return products whose stock is below the requested low-stock threshold.
+
+Verification:
+
+Example:
+Threshold = 10
+
+If products have:
+
+Product A = 5
+Product B = 8
+Product C = 15
+
+Expected:
+
+* Product A should be returned.
+* Product B should be returned.
+* Product C should not be returned.
+
+The API should return products where:
+
+Stock On Hand < Threshold
+
+Verify that the returned products contain their product information and current stock quantity.
+
+==================================================
+9. QUEUED ORDER-CONFIRMATION JOB
+================================
+
+Purpose:
+After an order is successfully created, an order-confirmation job should be dispatched.
+
+Verification:
+
+1. Create a valid order.
+2. Check that the order is successfully created.
+3. Run the Laravel queue worker.
+4. Verify that the queued job is processed.
+5. Check the application log for the simulated order-confirmation email information.
+
+Expected:
+
+* The job should be dispatched after successful order creation.
+* The job should process the created order.
+* The job should simulate an order-confirmation email.
+* Actual SMTP/email delivery is not required for this assignment.
+
+==================================================
+10. ORDER CREATION TEST VERIFICATION
+====================================
+
+Purpose:
+Verify that automated tests cover the main order functionality.
+
+The tests should verify:
+
+A. Successful Order Creation
+
+* Valid order can be created.
+* Order is stored.
+* Stock is reduced correctly.
+
+B. Insufficient Stock
+
+* Order fails when stock is insufficient.
+* Stock remains unchanged.
+* Order is not created.
+
+Expected:
+All implemented order tests should pass successfully.
+
+==================================================
+11. CONCURRENT STOCK / OVERSELLING VERIFICATION
+===============================================
+
+Purpose:
+Verify that stock cannot be oversold when multiple order requests try to purchase the same limited stock.
+
+Test Scenario:
+
+Product Stock = 1
+
+Two order requests attempt to purchase:
+
+Quantity = 1
+
+Expected Result:
+
+Request 1:
+
+* Order succeeds.
+
+Request 2:
+
+* Order fails because the stock has already been consumed.
+
+Final Result:
+
+* Product stock = 0
+* Only one successful order exists.
+* Stock must never become negative.
+* The same single unit must not be sold twice.
+
+The stock check and stock deduction must be safe when requests are processed at the same time.
+
+==================================================
+12. API VALIDATION VERIFICATION
+===============================
+
+Verify that the Create Order API validates:
+
+* Customer name is required.
+* Customer email is required and must be a valid email.
+* At least one order item is required.
+* Product ID must refer to an existing product.
+* Quantity must be an integer.
+* Quantity must be greater than 0.
+
+Expected:
+Invalid requests should be rejected with an appropriate validation response.
+
+==================================================
+13. FINAL TASK VERIFICATION
+===========================
+
+The reviewer should confirm the following:
+
+[ ] Products are available with required fields.
+
+[ ] Customers are available with unique email addresses.
+
+[ ] Orders can be created through the API.
+
+[ ] Orders can contain one or more products.
+
+[ ] Order subtotal is calculated correctly.
+
+[ ] Order tax is calculated correctly.
+
+[ ] Grand total is calculated correctly.
+
+[ ] Product stock is deducted after successful order creation.
+
+[ ] Insufficient stock prevents order creation.
+
+[ ] Customer order history can be retrieved using email.
+
+[ ] Low-stock products can be retrieved using a configurable threshold.
+
+[ ] Order-confirmation job is dispatched.
+
+[ ] Queue job processes successfully.
+
+[ ] Automated tests cover successful order creation.
+
+[ ] Automated tests cover insufficient stock.
+
+[ ] Stock cannot be oversold during concurrent requests.
+
+[ ] Database structure is normalized.
+
+[ ] Eloquent relationships are implemented.
+
+[ ] Validation is implemented.
+
+[ ] Controllers/services contain clean application logic.
+
+[ ] README contains setup and project information.
+
+[ ] Required prompt screenshots are included as requested by the assignment.
+
+[ ] Private GitHub repository contains the completed project.
+
+[ ] 5–10 minute narrated screen recording demonstrates the completed system.
+
+==================================================
+END OF TASK VERIFICATION DOCUMENTATION
+======================================
