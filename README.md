@@ -1,3 +1,4 @@
+
 # Store Order & Inventory Mini-System
 
 A Laravel-based Store Order & Inventory Mini-System developed as a take-home assignment.
@@ -103,3 +104,6 @@ Order Items
    | N:1
    v
 Products
+=======
+# store-order-inventory
+
